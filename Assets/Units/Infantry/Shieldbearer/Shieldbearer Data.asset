@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb7d3ed8a03348f43b911457e0a01083, type: 3}
+  m_Name: Shieldbearer Data
+  m_EditorClassIdentifier: 
+  Prefab: {fileID: 6826088586194595329, guid: 5c10842406f30c64797ab7c2808a489b, type: 3}
+  Cost: 1
+  Damage: 10
+  Range: 1
+  AttackSpeed: 3
+  InitialAttackDelay: 0.5
+  MovementSpeed: 1
