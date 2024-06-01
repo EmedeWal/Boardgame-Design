@@ -3,21 +3,26 @@ using UnityEngine.UI;
 
 public abstract class SliderUI : MonoBehaviour
 {
-    [Header("REFERENCES")]
-    [SerializeField] private Gradient gradient;
-    [SerializeField] private Slider slider;
-    [SerializeField] private Image fill;
+    [Header("SLIDER REFERENCES")]
+    [SerializeField] private Slider _slider;
+    [SerializeField] private Image _fill;
+    private Gradient _gradient;
+
+    protected void SetGradient(Gradient gradient)
+    {
+        _gradient = gradient;
+    }
 
     protected void SetMaxValue(float maxValue)
     {
-        slider.maxValue = maxValue;
-        slider.value = slider.maxValue;
-        fill.color = gradient.Evaluate(slider.normalizedValue);
+        _slider.maxValue = maxValue;
+        _slider.value = _slider.maxValue;
+        _fill.color = _gradient.Evaluate(_slider.normalizedValue);
     }
 
     protected void SetValue(float value)
     {
-        slider.value = value;
-        fill.color = gradient.Evaluate(slider.normalizedValue);
+        _slider.value = value;
+        _fill.color = _gradient.Evaluate(_slider.normalizedValue);
     }
 }

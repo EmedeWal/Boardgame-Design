@@ -4,40 +4,25 @@ using UnityEngine.UI;
 
 public class Unit : MonoBehaviour
 {
-    #region Enum
-    public enum UnitState
-    {
-        Idle,
-        Moving,
-        Attacking
-    }
-
     [Header("ENUM")]
     public UnitState State = UnitState.Idle;
-    #endregion
 
     [Header("STATS")]
     [SerializeField] private UnitData _unitData;
 
-    public Transform CurrentTarget;
+    [Header("TARGETING")]
+    [SerializeField] private float _autoRange;
+    public LayerMask _targetLayer;
+    public Transform _currentTarget;
     private bool _canAttack = true;
 
     [Header("OTHER")]
     [SerializeField] private Image _portrait;
-    [SerializeField] private LayerMask _enemyLayer;
-    [SerializeField] private float _autoRange;
 
-    //public void OnUpdate()
-    //{
-    //    AutoAttack();
-    //}
-
-    private void Update()
+    public void SetLayerAndTargetLayer(int layerIndex, LayerMask targetLayer)
     {
-        if (State == UnitState.Idle && CurrentTarget == null)
-        {
-            AutoAttack();
-        }
+        gameObject.layer = layerIndex;
+        _targetLayer = targetLayer;
     }
 
     public void SetPortraitColor(Color color)
@@ -45,13 +30,68 @@ public class Unit : MonoBehaviour
         _portrait.color = color;
     }
 
+    public void AutoAttack()
+    {
+        Transform nearestEnemy = FindNearestTarget();
+
+        if (nearestEnemy != null)
+        {
+            if (_currentTarget == nearestEnemy) return;
+
+            SetTarget(nearestEnemy);
+        }
+    }
+
     public void SetTarget(Transform target)
     {
-        CurrentTarget = target;
+        _currentTarget = target;
+        State = UnitState.Chasing;
 
-        State = UnitState.Moving;
         StopAllCoroutines();
         StartCoroutine(MoveToTargetCoroutine(target));
+    }
+
+    public void SetTargetPosition(Vector2 targetPosition)
+    {
+        _currentTarget = null;
+        State = UnitState.Moving;
+
+        StopAllCoroutines();
+        StartCoroutine(MoveToTargetPositionCoroutine(targetPosition));
+    }
+
+    private void Attack()
+    {
+        if (!_canAttack) return;
+
+        State = UnitState.Attacking;
+        _canAttack = false;
+
+        if (_currentTarget.TryGetComponent<Health>(out var health))
+        {
+            health.TakeDamage(_unitData.Damage);
+        }
+
+        Invoke(nameof(ResetCanAttack), _unitData.AttackSpeed);
+    }
+
+    private void ResetCanAttack()
+    {
+        _canAttack = true;
+
+        if (_currentTarget != null)
+        {
+            SetTarget(_currentTarget);
+        }
+        else
+        {
+            State = UnitState.Idle;
+        }
+    }
+
+    private void Move(Vector3 targetPosition)
+    {
+        transform.position = Vector3.MoveTowards(transform.position, targetPosition, _unitData.MovementSpeed * Time.deltaTime);
     }
 
     private IEnumerator MoveToTargetCoroutine(Transform target)
@@ -62,17 +102,7 @@ public class Unit : MonoBehaviour
             yield return null;
         }
 
-        State = UnitState.Attacking;
-        StartAttacking();
-    }
-
-    public void SetTargetPosition(Vector2 targetPosition)
-    {
-        CurrentTarget = null;
-
-        State = UnitState.Moving;
-        StopAllCoroutines();
-        StartCoroutine(MoveToTargetPositionCoroutine(targetPosition));
+        Attack();
     }
 
     private IEnumerator MoveToTargetPositionCoroutine(Vector3 targetPosition)
@@ -86,73 +116,25 @@ public class Unit : MonoBehaviour
         State = UnitState.Idle;
     }
 
-    private void AutoAttack()
+    private Transform FindNearestTarget()
     {
-        Transform nearestEnemy = FindNearestEnemy();
+        Collider[] targets = Physics.OverlapSphere(transform.position, _autoRange, _targetLayer);
 
-        if (nearestEnemy != null)
-        {
-            SetTarget(nearestEnemy);
-        }
-    }
-
-    private void StartAttacking()
-    {
-        Invoke(nameof(Attack), _unitData.InitialAttackDelay);
-    }
-
-    private void Attack()
-    {
-        if (!_canAttack) return;
-
-        _canAttack = false;
-
-        if (CurrentTarget.TryGetComponent<Health>(out var health))
-        {
-            health.TakeDamage(_unitData.Damage);
-        }
-
-        Invoke(nameof(ResetCanAttack), _unitData.AttackSpeed);
-    }
-
-    private void ResetCanAttack()
-    {
-        _canAttack = true;
-
-        if (CurrentTarget != null)
-        {
-            Attack();
-        }
-        else
-        {
-            State = UnitState.Idle;
-        }
-    }
-
-    private void Move(Vector3 targetPosition)
-    {
-        transform.position = Vector3.MoveTowards(transform.position, targetPosition, _unitData.MovementSpeed * Time.deltaTime);
-    }
-
-    private Transform FindNearestEnemy()
-    {
-        Collider[] enemies = Physics.OverlapSphere(transform.position, _autoRange, _enemyLayer);
-
-        Transform nearestEnemy = null;
+        Transform nearestTarget = null;
         float smallestDistance = _autoRange;
 
-        foreach (Collider enemy in enemies)
+        foreach (Collider target in targets)
         {
-            float distanceToEnemy = GetDistance(enemy.transform.position);
+            float distanceToTarget = GetDistance(target.transform.position);
 
-            if (distanceToEnemy <= smallestDistance)
+            if (distanceToTarget <= smallestDistance)
             {
-                smallestDistance = distanceToEnemy;
-                nearestEnemy = enemy.transform;
+                smallestDistance = distanceToTarget;
+                nearestTarget = target.transform;
             }
         }
 
-        return nearestEnemy;
+        return nearestTarget;
     }
 
     private float GetDistance(Vector3 targetPosition)
@@ -163,10 +145,5 @@ public class Unit : MonoBehaviour
     public int GetCost()
     {
         return _unitData.Cost;
-    }
-
-    public GameObject GetPrefab()
-    {
-        return _unitData.Prefab;
     }
 }

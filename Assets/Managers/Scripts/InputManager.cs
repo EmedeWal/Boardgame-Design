@@ -3,10 +3,6 @@ using UnityEngine;
 
 public class InputManager : MonoBehaviour
 {
-    [Header("LAYERMASKS")]
-    [SerializeField] private LayerMask _unitLayer;
-    [SerializeField] private LayerMask _enemyLayer;
-
     public event Action<Unit> SelectUnit;
     public event Action DeselectUnits;
 
@@ -32,7 +28,7 @@ public class InputManager : MonoBehaviour
 
     private void HandleLeftMouseClick()
     {
-        if (RaycastAtMousePosition(_unitLayer, out RaycastHit hitInfo))
+        if (RaycastAtMousePosition(LayerMask.GetMask("Allied"), out RaycastHit hitInfo))
         {
             OnSelectUnit(hitInfo.transform.GetComponent<Unit>());
         }
@@ -54,7 +50,7 @@ public class InputManager : MonoBehaviour
 
     private void HandleRightMouseClick()
     {
-        if (RaycastAtMousePosition(_enemyLayer, out RaycastHit hitInfo))
+        if (RaycastAtMousePosition(LayerMask.GetMask("Hostile"), out RaycastHit hitInfo))
         {
             OnSetTarget(hitInfo.transform);
         }
@@ -84,6 +80,6 @@ public class InputManager : MonoBehaviour
     private bool RaycastAtMousePosition(LayerMask layerMask, out RaycastHit hitInfo)
     {
         Vector3 mousePosition = GetMousePosition();
-        return Physics.Raycast(mousePosition, Vector3.forward, out hitInfo, Mathf.Infinity, layerMask);
+        return Physics.Raycast(mousePosition, Vector3.forward, out hitInfo, 3f, layerMask);
     }
 }

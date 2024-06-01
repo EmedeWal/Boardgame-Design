@@ -8,56 +8,67 @@ public class EnemyManager : MonoBehaviour
     [SerializeField] private List<Unit> _units = new List<Unit>();
 
     [Header("SPAWN LOCATION")]
-    [SerializeField] private List<Transform> _spawnLocations = new List<Transform>();
+    [SerializeField] private float _upperLimitY;
+    [SerializeField] private float _lowerLimitY;
+    [SerializeField] private float _xValue;
 
     [Header("STATS")]
-    [SerializeField] private int _waveValueBase = 4;
+    [SerializeField] private int _baseWaveValue = 4;
     [SerializeField] private float _waveDuration = 20f;
-    private int _waveValue;
+    private int _currentWaveValue;
 
-    private List<GameObject> _unitsToSpawn = new List<GameObject>();
+    private List<Unit> _unitsToSpawn = new List<Unit>();
     private float _spawnInterval;
 
-    private List<GameObject> _unitsSpawned = new List<GameObject>();
+    private List<Unit> _unitsSpawned = new List<Unit>();
 
     private void Start()
     {
-        StartCoroutine(ManageWavesCoroutine());
+        StartWave();
     }
 
-    private IEnumerator ManageWavesCoroutine()
+    private void Update()
     {
-        while (true)
+        foreach (Unit unit in _unitsSpawned)
         {
-            _waveValue = _waveValueBase;
-
-            StartCoroutine(GenerateEnemiesCoroutine());
-
-            yield return new WaitForSeconds(_waveDuration + 1);
+            if (unit.State == UnitState.Idle)
+            {
+                unit.SetTargetPosition(transform.position + new Vector3(-30, 0, 0));
+            }
+            else if (unit.State != UnitState.Attacking)
+            {
+                unit.AutoAttack();
+            }
         }
+    }
+
+    private void StartWave()
+    {
+        _currentWaveValue = _baseWaveValue;
+
+        StartCoroutine(GenerateEnemiesCoroutine());
     }
 
     private IEnumerator GenerateEnemiesCoroutine()
     {
-        List<GameObject> generatedUnits = new List<GameObject>();
+        List<Unit> generatedUnits = new List<Unit>();
 
-        while (_waveValue > 0)
+        while (_currentWaveValue > 0)
         {
             int randomUnitID = Random.Range(0, _units.Count);
             int randomUnitCost = _units[randomUnitID].GetCost();
 
-            if (_waveValue >= randomUnitCost)
+            if (_currentWaveValue >= randomUnitCost)
             {
-                generatedUnits.Add(_units[randomUnitID].GetPrefab());
-                _waveValue -= randomUnitCost;
+                generatedUnits.Add(_units[randomUnitID]);
+                _currentWaveValue -= randomUnitCost;
             }
 
             yield return null;
         }
 
-        _unitsSpawned.Clear();
         _unitsToSpawn = generatedUnits;
-        _spawnInterval = (_waveDuration / _unitsToSpawn.Count);
+        _spawnInterval = _waveDuration / _unitsToSpawn.Count;
 
         StartCoroutine(SpawnEnemiesCoroutine());
     }
@@ -68,17 +79,34 @@ public class EnemyManager : MonoBehaviour
         {
             yield return new WaitForSeconds(_spawnInterval);
 
-            GameObject currentUnit = Instantiate(_unitsToSpawn[0], GetValidSpawnPoint(), Quaternion.identity);
-            currentUnit.layer = transform.gameObject.layer;
-            currentUnit.transform.SetParent(transform, false);
-
-            _unitsSpawned.Add(currentUnit);
-            _unitsToSpawn.RemoveAt(0);
+            SpawnUnit(_unitsToSpawn[0]);
         }
+
+        StartWave();
     }
 
     private Vector3 GetValidSpawnPoint()
     {
-        return _spawnLocations[Random.Range(0, _spawnLocations.Count)].position;
+        float yValue = Random.Range(_lowerLimitY, _upperLimitY);
+        return new Vector3(_xValue, yValue, 0);
+    }
+
+    private void SpawnUnit(Unit unit)
+    {
+        Unit spawnedUnit = Instantiate(unit, GetValidSpawnPoint(), Quaternion.identity);
+        spawnedUnit.SetLayerAndTargetLayer(LayerMask.NameToLayer("Hostile"), LayerMask.GetMask("Allied"));
+
+        Health health = spawnedUnit.GetComponent<Health>();
+        health.Death += EnemyManager_Death;
+
+        _unitsSpawned.Add(spawnedUnit);
+        _unitsToSpawn.RemoveAt(0);
+    }
+
+    private void EnemyManager_Death(GameObject unitObject)
+    {
+        _unitsSpawned.Remove(unitObject.GetComponent<Unit>());
+        unitObject.GetComponent<Health>().Death -= EnemyManager_Death;
+        Destroy(unitObject);
     }
 }

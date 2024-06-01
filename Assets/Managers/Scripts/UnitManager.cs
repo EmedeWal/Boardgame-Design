@@ -38,34 +38,31 @@ public class UnitManager : MonoBehaviour
     private void OnEnable()
     {
         _inputManager.SelectUnit += UnitManager_SelectUnit;
-        _inputManager.DeselectUnits += UnitManager_DeselectUnits;
-
-        _inputManager.SetTarget += UnitManager_SetTarget;
-        _inputManager.SetTargetPosition += UnitManager_SetTargetPosition;
     }
 
     private void OnDisable()
     {
         _inputManager.SelectUnit -= UnitManager_SelectUnit;
-        _inputManager.DeselectUnits -= UnitManager_DeselectUnits;
-
-        _inputManager.SetTarget -= UnitManager_SetTarget;
-        _inputManager.SetTargetPosition -= UnitManager_SetTargetPosition;
     }
 
     private void UnitManager_SelectUnit(Unit unit)
     {
         _selectedUnit = unit;
         _selectedUnit.SetPortraitColor(_selectedColor);
+
+        _inputManager.DeselectUnits += UnitManager_DeselectUnits;
+        _inputManager.SetTarget += UnitManager_SetTarget;
+        _inputManager.SetTargetPosition += UnitManager_SetTargetPosition;
     }
 
     private void UnitManager_DeselectUnits()
     {
-        if (_selectedUnit != null)
-        {
-            _selectedUnit.SetPortraitColor(Color.white);
-            _selectedUnit = null;
-        }
+        _selectedUnit.SetPortraitColor(Color.white);
+        _selectedUnit = null;
+
+        _inputManager.DeselectUnits -= UnitManager_DeselectUnits;
+        _inputManager.SetTarget -= UnitManager_SetTarget;
+        _inputManager.SetTargetPosition -= UnitManager_SetTargetPosition;
     }
 
     private void UnitManager_SetTarget(Transform target)

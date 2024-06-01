@@ -1,9 +1,12 @@
 using UnityEngine;
+using System;
 
 public class Health : Resource
 {
     [Header("REFERENCES")]
     [SerializeField] private HealthUI _healthUI;
+
+    public event Action<GameObject> Death;
 
     private void Start()
     {
@@ -26,7 +29,7 @@ public class Health : Resource
 
         if (AtMinValue())
         {
-            Death();
+            OnDeath();
         }
         else
         {
@@ -36,7 +39,7 @@ public class Health : Resource
 
     protected virtual void HealthInitialised(float maxHealth)
     { 
-        _healthUI.SetMaxHealth(maxHealth);
+        _healthUI.SetMaxHealth(maxHealth, gameObject.layer);
     }
 
     protected virtual void HealthChanged(float currentHealth)
@@ -44,9 +47,9 @@ public class Health : Resource
         _healthUI.SetCurrentHealth(currentHealth); 
     }
 
-    protected virtual void Death()
+    protected virtual void OnDeath()
     { 
-        Destroy(gameObject); 
+        Death?.Invoke(gameObject);    
     }
 }
 
